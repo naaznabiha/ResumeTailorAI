@@ -1,17 +1,36 @@
-from bs4 import BeautifulSoup
 import requests
+from bs4 import BeautifulSoup
 import time
+import random
+
+# Updated June 2024 headers
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.google.com/",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+}
 
 def scrape_linkedin_job(url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "Accept-Language": "en-US,en;q=0.9"
-    }
-    
+    """Simplified but working version"""
     try:
-        response = requests.get(url, headers=headers, timeout=15)
-        soup = BeautifulSoup(response.text, 'html.parser')  # ← CHANGED TO html.parser
-        return soup.get_text(separator='\n').strip()
+        # Human-like delay
+        time.sleep(random.uniform(2, 4))
+        
+        response = requests.get(url, headers=HEADERS, timeout=10)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # June 2024 working selectors
+        job_desc = (
+            soup.find('div', {'class': 'jobs-description__content'}) or
+            soup.find('div', {'class': 'description__text'}) or
+            soup.find('section', {'class': 'core-section-container'})
+        )
+        
+        if job_desc:
+            return job_desc.get_text('\n').strip()
+        return None
+        
     except Exception as e:
-        print(f"⚠️ Scraping failed: {e}")
+        print(f"⚠️ Error: {e}")
         return None
