@@ -1,12 +1,12 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware  # For frontend connections
+from fastapi.middleware.cors import CORSMiddleware
 from scraper import scrape_linkedin_job
 from pathlib import Path
-import uvicorn  # Required for Railway/Vercel
+import uvicorn
 
 app = FastAPI()
 
-# Allow all origins (replace * with your frontend URL later)
+# CORS (Keep this exactly as is)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,13 +14,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 1. Changed root endpoint from home() to root() for convention
 @app.get("/")
-async def home():
+async def root():  # ← Renamed from home()
     return {"message": "ResumeTailorAI is LIVE!"}
 
+# 2. Added status code to scrape_job docs
 @app.get("/scrape")
 async def scrape_job(url: str):
-    """Scrape a job description"""
+    """Scrape a job description
+    Status codes:
+      - 200: Success
+      - 400: Invalid URL
+      - 500: Scraping failed
+    """
     if not url.startswith(("https://www.linkedin.com", "https://linkedin.com")):
         raise HTTPException(status_code=400, detail="Only LinkedIn URLs are supported")
     
@@ -28,6 +35,5 @@ async def scrape_job(url: str):
         return {"description": description}
     raise HTTPException(status_code=500, detail="Scraping failed")
 
-# Required for Railway/Vercel
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# 3. REMOVED the __main__ block (Railway uses Procfile)
+# (This prevents double instantiation)
