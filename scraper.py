@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import random
-
+import re
 # Updated June 2024 headers
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
@@ -10,6 +10,14 @@ HEADERS = {
     "Referer": "https://www.google.com/",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
 }
+
+def extract_salary(text):
+    match = re.search(r"Salary\s*:\s*(.+)", text)
+    return match.group(1) if match else None
+
+def clean_text(text):
+    return "\n".join(line.strip() for line in text.split("\n") 
+            if line.strip() and "Show" not in line)
 
 def scrape_linkedin_job(url):
     """Simplified but working version"""
@@ -28,7 +36,7 @@ def scrape_linkedin_job(url):
         )
         
         if job_desc:
-            return job_desc.get_text('\n').strip()
+            return " ".join(job_desc.get_text().strip().split())
         return None
         
     except Exception as e:

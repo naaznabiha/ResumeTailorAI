@@ -1,9 +1,17 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from scraper import scrape_linkedin_job
 from pathlib import Path
 
+
+# Initialize FastAPI FIRST
 app = FastAPI(title="ResumeTailorAI", docs_url="/docs")
+
+# THEN setup Limiter and middleware
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
 
 # CORS Configuration
 app.add_middleware(
@@ -24,20 +32,10 @@ async def root():
     }
 
 @app.get("/scrape")
-async def scrape_job(url: str):
+@limiter.limit("5/minute")
+async def scrape_job(request: Request, url: str):
     """
     Scrape LinkedIn job description
-    
-    Parameters:
-    - url: Valid LinkedIn job URL
-    
-    Returns:
-    - JSON with 'description' field or error message
-    
-    Status codes:
-    - 200: Success
-    - 400: Invalid URL format
-    - 500: Scraping failed
     """
     if not url.startswith(("https://www.linkedin.com", "https://linkedin.com")):
         raise HTTPException(
