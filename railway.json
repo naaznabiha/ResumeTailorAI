@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@railway/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/"
+    }
+  ],
+  "env": {
+    "PORT": "8000"
+  }
+}
