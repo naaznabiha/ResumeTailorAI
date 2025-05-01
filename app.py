@@ -95,8 +95,10 @@ def tailor_resume(job_desc: str, resume: str) -> str:
         )
         return response.choices[0].message.content
     except Exception as e:
-        # Return a placeholder instead of raising an error
-        return f"[PLACEHOLDER] Tailored resume would appear here if OpenAI quota was available. Error: {str(e)}"
+        raise HTTPException(
+            status_code=500,
+            detail=f"OpenAI error: {str(e)}"
+        )
 
 @app.post("/tailor")
 @limiter.limit("3/minute")
