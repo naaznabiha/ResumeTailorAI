@@ -80,7 +80,7 @@ def tailor_resume(job_desc: str, resume: str) -> str:
     """Use OpenAI to tailor resume"""
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[
                 {
                     "role": "system",
