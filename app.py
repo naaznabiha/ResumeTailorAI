@@ -3,12 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from scraper import scrape_linkedin_job
-from openai import OpenAI
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # Added this import
+import httpx
 import os
 
 # Load environment variables first
-load_dotenv()
+load_dotenv()  # Now this will work
 
 # Initialize FastAPI
 app = FastAPI(
@@ -29,21 +29,11 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# Initialize OpenAI client (NEW PROPER WAY FOR v1.0+)
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise RuntimeError("OPENAI_API_KEY not found in .env file")
-
-client = OpenAI(
-    api_key=api_key,
-    # Remove any proxies parameter if you had it
-)
-
 @app.get("/")
 async def root():
     """Health check endpoint"""
     return {
-        "message": "ResumeTailorAI is LIVE!",
+        "message": "ResumeTailorAI is LIVE! (Now with Local LLM)",
         "endpoints": {
             "scrape": "/scrape?url=LINKEDIN_JOB_URL",
             "tailor": "POST /tailor"
@@ -76,28 +66,40 @@ async def scrape_job(request: Request, url: str):
             detail=f"Scraping failed: {str(e)}"
         )
 
-def tailor_resume(job_desc: str, resume: str) -> str:
-    """Use OpenAI to tailor resume"""
+async def tailor_resume(job_desc: str, resume: str) -> str:
+    """Use local Llama3 to tailor resume"""
     try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a professional career coach. Tailor this resume to match the job description."
+        prompt = f"""
+        [INST] <<SYS>>
+        You are an expert career coach. Strictly follow these rules:
+        1. Keep original resume structure
+        2. Highlight skills matching: {job_desc[:1000]}
+        3. Never add fake information
+        4. Respond ONLY with optimized resume text
+        <</SYS>>
+        
+        Optimize this resume:
+        {resume}
+        [/INST]
+        """
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "http://localhost:11434/api/generate",
+                json={
+                    "model": "llama3",
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.7}
                 },
-                {
-                    "role": "user",
-                    "content": f"Job Description:\n{job_desc}\n\nResume:\n{resume}"
-                }
-            ],
-            temperature=0.7
-        )
-        return response.choices[0].message.content
+                timeout=60.0  # Increased timeout for local LLM
+            )
+            return response.json()["response"]
+            
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"OpenAI error: {str(e)}"
+            detail=f"AI processing error: {str(e)}"
         )
 
 @app.post("/tailor")
@@ -114,7 +116,7 @@ async def tailor_resume_api(request: Request, job_url: str, resume_text: str):
                 detail="Could not scrape job description"
             )
         
-        tailored_resume = tailor_resume(job_desc, resume_text)
+        tailored_resume = await tailor_resume(job_desc, resume_text)
         return {"tailored_resume": tailored_resume}
         
     except HTTPException:
