@@ -3,12 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from scraper import scrape_linkedin_job
-from dotenv import load_dotenv  # Added this import
+from dotenv import load_dotenv
 import httpx
 import os
 
 # Load environment variables first
-load_dotenv()  # Now this will work
+load_dotenv()
 
 # Initialize FastAPI
 app = FastAPI(
@@ -71,14 +71,18 @@ async def tailor_resume(job_desc: str, resume: str) -> str:
     try:
         prompt = f"""
         [INST] <<SYS>>
-        You are an expert career coach. Strictly follow these rules:
-        1. Keep original resume structure
-        2. Highlight skills matching: {job_desc[:1000]}
-        3. Never add fake information
-        4. Respond ONLY with optimized resume text
+        You are a professional resume optimization expert. Follow these rules STRICTLY:
+        1. PRESERVE FORMAT: Maintain original sections (Experience, Education, etc.)
+        2. RELEVANCE FIRST: Bold **only** skills/experiences matching: {job_desc[:800]}
+        3. NEVER INVENT: Only use information from the original resume
+        4. OUTPUT FORMAT: Return clean markdown with ### Headers and - Bullet points
+        5. LENGTH: Keep similar length to original (add/remove nothing)
+        
+        JOB DESCRIPTION KEYWORDS TO MATCH:
+        {', '.join(set(job_desc.lower().split()[:20]))}
         <</SYS>>
         
-        Optimize this resume:
+        ORIGINAL RESUME TO OPTIMIZE:
         {resume}
         [/INST]
         """
@@ -90,9 +94,12 @@ async def tailor_resume(job_desc: str, resume: str) -> str:
                     "model": "llama3",
                     "prompt": prompt,
                     "stream": False,
-                    "options": {"temperature": 0.7}
+                    "options": {
+                        "temperature": 0.5,  # More focused outputs
+                        "repeat_penalty": 1.1  # Prevents word repetition
+                    }
                 },
-                timeout=60.0  # Increased timeout for local LLM
+                timeout=60.0
             )
             return response.json()["response"]
             
