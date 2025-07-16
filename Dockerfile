@@ -21,7 +21,9 @@ COPY . .
 
 # 5. Create a start script
 RUN echo '#!/bin/sh\nollama serve & \nuvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}' > /start.sh && \
+    sed -i 's/\${PORT:-8000}/${PORT:-8000}/' /start.sh && \
     chmod +x /start.sh
+
 
 # 6. Use the script as entrypoint
 CMD ["/start.sh"]
