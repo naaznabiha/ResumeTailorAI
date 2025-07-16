@@ -20,4 +20,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 5. Start both services
-CMD ollama serve & uvicorn app:app --host 0.0.0.0 --port $PORT
+CMD ollama serve & uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}
