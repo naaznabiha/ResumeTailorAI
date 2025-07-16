@@ -19,5 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 4. Copy the rest of the app
 COPY . .
 
-# 5. Start both services
-CMD ollama serve & uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}
+# 5. Create a start script
+RUN echo '#!/bin/sh\nollama serve & \nuvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}' > /start.sh && \
+    chmod +x /start.sh
+
+# 6. Use the script as entrypoint
+CMD ["/start.sh"]
